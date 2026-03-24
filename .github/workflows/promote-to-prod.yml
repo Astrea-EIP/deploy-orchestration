@@ -13,11 +13,16 @@ jobs:
       - name: 🔁 Copy preprod → prod
         run: |
           cp environments/preprod.yml environments/prod.yml
+          sed -i 's/^\(\s*environment:\s*\)preprod$/\1prod/' environments/prod.yml
 
       - name: 📝 Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add environments/prod.yml
-          git commit -m "🚀 Promote preprod to prod"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit; skipping commit and push."
+          else
+            git commit -m "🚀 Promote preprod to prod"
+            git push
+          fi
