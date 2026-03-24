@@ -1,0 +1,27 @@
+name: Validate environments
+
+on:
+  pull_request:
+    paths:
+      - "environments/*.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: 📦 Install deps
+        run: pip install pyyaml requests
+
+      - name: 🔍 Validate preprod
+        run: python scripts/validate_env.py environments/preprod.yml
+
+      - name: 🔍 Validate prod
+        run: python scripts/validate_env.py environments/prod.yml

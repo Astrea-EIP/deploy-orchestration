@@ -1,0 +1,20 @@
+version: 1
+
+environment: prod
+
+services:
+  app-web:
+    repo: Astrea-EIP/app-web
+    ref: 7ab21de
+
+  app-mobile:
+    repo: Astrea-EIP/app-mobile
+    ref: 1cc998a
+
+  api-back:
+    repo: Astrea-EIP/api-back
+    ref: 22ff991
+
+  core-moteur:
+    repo: Astrea-EIP/core-moteur
+    ref: 98ac002
