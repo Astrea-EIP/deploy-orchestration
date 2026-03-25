@@ -1,0 +1,14 @@
+name: Notify deployment change
+
+on:
+  push:
+    paths:
+      - "environments/*.yml"
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📣 Log change
+        run: echo "Environment updated"
