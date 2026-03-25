@@ -7,55 +7,62 @@ import time
 
 GITHUB_API_URL_BASE = "https://api.github.com"
 GITHUB_SESSION = requests.Session()
+
 GITHUB_HEADERS = {
     "Accept": "application/vnd.github+json",
 }
+
 _token = os.environ.get("GITHUB_TOKEN")
 if _token:
     GITHUB_HEADERS["Authorization"] = f"Bearer {_token}"
+
 GITHUB_SESSION.headers.update(GITHUB_HEADERS)
 
-# Simple client-side rate limiting to avoid hitting GitHub API limits
 LAST_REQUEST_TIME = 0.0
-RATE_LIMIT_INTERVAL = 0.2  # seconds between requests (max ~5 req/s)
+RATE_LIMIT_INTERVAL = 0.2
+
 
 def check_commit(repo, ref):
     global LAST_REQUEST_TIME
     url = f"{GITHUB_API_URL_BASE}/repos/{repo}/commits/{ref}"
 
-    # Enforce a minimal delay between API requests
     now = time.time()
     elapsed = now - LAST_REQUEST_TIME
     if elapsed < RATE_LIMIT_INTERVAL:
         time.sleep(RATE_LIMIT_INTERVAL - elapsed)
 
-    response = GITHUB_SESSION.get(url)
-    LAST_REQUEST_TIME = time.time()
     try:
-        response = requests.get(url, timeout=10)
+        response = GITHUB_SESSION.get(url, timeout=10)
     except RequestException as e:
-        print(f"⚠️ Network error while contacting GitHub API ({url}): {e}")
-        print("   Please check your network connection or GitHub availability.")
+        print(f"⚠️ Network error: {e}")
         return False
+
+    LAST_REQUEST_TIME = time.time()
     return response.status_code == 200
+
 
 def validate(file):
     with open(file, "r") as f:
         data = yaml.safe_load(f)
 
-    if "services" not in data:
-        print("❌ Missing 'services'")
-        sys.exit(1)
-
     errors = []
 
-    for name, service in data["services"].items():
+    if "environment" not in data:
+        errors.append("Missing environment field")
+
+    if "services" not in data:
+        errors.append("Missing services")
+
+    for name, service in data.get("services", {}).items():
         repo = service.get("repo")
-        ref = service.get("ref")
+        ref = service.get("version")
 
         if not repo or not ref:
-            errors.append(f"{name}: missing repo or ref")
+            errors.append(f"{name}: missing repo or version")
             continue
+
+        if not ref.startswith("v"):
+            errors.append(f"{name}: version must start with 'v'")
 
         if not check_commit(repo, ref):
             errors.append(f"{name}: invalid ref {ref}")
@@ -67,6 +74,7 @@ def validate(file):
         sys.exit(1)
 
     print(f"✅ {file} is valid")
+
 
 if __name__ == "__main__":
     validate(sys.argv[1])

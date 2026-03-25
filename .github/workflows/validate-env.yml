@@ -5,23 +5,31 @@ on:
     paths:
       - "environments/*.yml"
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
-          python-version: 3.11
+          python-version: "3.11"
 
-      - name: 📦 Install deps
+      - name: Install dependencies
         run: pip install pyyaml requests
 
-      - name: 🔍 Validate preprod
+      - name: Validate preprod
         run: python scripts/validate_env.py environments/preprod.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔍 Validate prod
+      - name: Validate prod
         run: python scripts/validate_env.py environments/prod.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -5,16 +5,16 @@ environment: prod
 services:
   app-web:
     repo: Astrea-EIP/app-web
-    ref: 7ab21de
+    version: v0.0.0
 
   app-mobile:
     repo: Astrea-EIP/app-mobile
-    ref: 1cc998a
+    version: v0.0.0
 
   api-back:
     repo: Astrea-EIP/api-back
-    ref: 22ff991
+    version: v0.0.0
 
   core-moteur:
     repo: Astrea-EIP/core-moteur
-    ref: 98ac002
+    version: v0.0.0
