@@ -6,6 +6,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: promote-prod
+  cancel-in-progress: false
+
 jobs:
   promote:
     if: github.ref == 'refs/heads/main'
@@ -15,10 +19,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml requests
+
       - name: Copy preprod → prod
         run: |
           cp environments/preprod.yml environments/prod.yml
           sed -i 's/^\(\s*environment:\s*\)preprod$/\1prod/' environments/prod.yml
+
+      - name: Validate promoted prod
+        run: python scripts/validate_env.py environments/prod.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit changes
         run: |

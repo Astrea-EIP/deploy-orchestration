@@ -4,9 +4,14 @@ on:
   pull_request:
     paths:
       - "environments/*.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: validate-env-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
