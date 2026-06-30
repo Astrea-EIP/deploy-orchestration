@@ -1,9 +1,11 @@
-import yaml
-import requests
-from requests.exceptions import RequestException
-import sys
 import os
+import re
+import sys
 import time
+
+import requests
+import yaml
+from requests.exceptions import RequestException
 
 GITHUB_API_URL_BASE = "https://api.github.com"
 GITHUB_SESSION = requests.Session()
@@ -20,11 +22,12 @@ GITHUB_SESSION.headers.update(GITHUB_HEADERS)
 
 LAST_REQUEST_TIME = 0.0
 RATE_LIMIT_INTERVAL = 0.2
+SEMVER_TAG_PATTERN = re.compile(r"^v\d+\.\d+\.\d+$")
 
 
-def check_commit(repo, ref):
+def check_tag(repo, tag):
     global LAST_REQUEST_TIME
-    url = f"{GITHUB_API_URL_BASE}/repos/{repo}/commits/{ref}"
+    url = f"{GITHUB_API_URL_BASE}/repos/{repo}/git/ref/tags/{tag}"
 
     now = time.time()
     elapsed = now - LAST_REQUEST_TIME
@@ -55,17 +58,18 @@ def validate(file):
 
     for name, service in data.get("services", {}).items():
         repo = service.get("repo")
-        ref = service.get("version")
+        version = service.get("version")
 
-        if not repo or not ref:
+        if not repo or not version:
             errors.append(f"{name}: missing repo or version")
             continue
 
-        if not ref.startswith("v"):
-            errors.append(f"{name}: version must start with 'v'")
+        if not SEMVER_TAG_PATTERN.match(version):
+            errors.append(f"{name}: version must match vX.Y.Z")
+            continue
 
-        if not check_commit(repo, ref):
-            errors.append(f"{name}: invalid ref {ref}")
+        if not check_tag(repo, version):
+            errors.append(f"{name}: invalid version tag {version}")
 
     if errors:
         print("❌ Validation failed:")
