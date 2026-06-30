@@ -1,21 +1,35 @@
-# Deploy Orchestration
+# deploy-orchestration
 
-This repository defines deployed versions of all services.
+`deploy-orchestration` defines the deployed state of Astrea-EIP environments.
+It owns environment configuration, validation, and promotion workflows.
 
-## Environments
+## What belongs here
 
-- `preprod.yml`: staging environment
-- `prod.yml`: production environment
+This repository owns:
+
+- environment files for `preprod` and `prod`
+- validation scripts for deployed versions
+- promotion workflows between environments
+- repository-local orchestration documentation
+
+This repository does not own:
+
+- application business logic
+- frontend, mobile, backend, or engine feature code
+- central contribution rules
+
+## Local development
+
+Use the validation tooling when changing environment files.
+
+```bash
+python scripts/validate_env.py environments/preprod.yml
+python scripts/validate_env.py environments/prod.yml
+```
 
 ## Rules
 
-- No business logic
-- Only commit SHAs or tags
-- PR required for all changes
-- CI validates commit existence
-
-## Deployment flow
-
-1. Update preprod
-2. Validate in staging
-3. Promote to prod
+- Use `version` everywhere for deployed references.
+- Do not introduce `ref`.
+- All changes must go through pull requests.
+- `prod` changes must stay traceable to validated preprod state.
