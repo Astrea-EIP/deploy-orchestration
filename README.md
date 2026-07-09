@@ -50,6 +50,20 @@ docker compose up --build
 Exposed ports: `app-web` on `4200`, `api-back` on `5217` (Swagger at
 `/swagger`), GraphHopper on `8989`, MongoDB on `27017`.
 
+To check everything actually started correctly:
+
+```bash
+curl http://localhost:8989/health   # -> OK
+curl -I http://localhost:5217/swagger/index.html   # -> 200
+curl -I http://localhost:4200/                      # -> 200
+```
+
+To stop and remove everything (containers, network, MongoDB volume):
+
+```bash
+docker compose down -v
+```
+
 This is for local development/demo purposes. It's separate from `api-back`'s
 own `docker-compose.yml`, which only starts a disposable MongoDB for backend-only
 development — see `api-back/CONTRIBUTING.md`.
