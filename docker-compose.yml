@@ -1,0 +1,49 @@
+# Runs the whole Astrea stack locally in one command. See README.md for
+# prerequisites (sibling checkouts, OSM data file) before running.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - astrea-mongo-data:/data/db
+
+  graphhopper:
+    build:
+      context: ../core-moteur/graphhopper
+    restart: unless-stopped
+    command: ["/config.yml"]
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./data:/data
+      - ../core-moteur/graphhopper/config.yml:/config.yml:ro
+      - ../core-moteur/graphhopper/custom_models:/data/custom_models:ro
+
+  api-back:
+    build:
+      context: ../api-back
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - graphhopper
+    ports:
+      - "5217:5217"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      MongoDb__ConnectionString: mongodb://mongo:27017
+      MongoDb__DatabaseName: astrea_proto
+      GraphHopper__BaseUrl: http://graphhopper:8989
+
+  app-web:
+    build:
+      context: ../app-web
+    restart: unless-stopped
+    depends_on:
+      - api-back
+    ports:
+      - "4200:4200"
+
+volumes:
+  astrea-mongo-data:
