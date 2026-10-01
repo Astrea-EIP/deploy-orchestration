@@ -1,5 +1,6 @@
-# Runs the whole Astrea stack locally in one command. See README.md for
-# prerequisites (sibling checkouts, OSM data file) before running.
+# Runs the whole Astrea stack from the published GHCR images, instead of
+# building from source. See README.md: generate the .env file first with
+# scripts/render_env.py, then `docker compose -f docker-compose.prod.yml up`.
 services:
   mongo:
     image: mongo:7
@@ -10,8 +11,7 @@ services:
       - astrea-mongo-data:/data/db
 
   graphhopper:
-    build:
-      context: ../core-moteur/graphhopper
+    image: ghcr.io/astrea-eip/graphhopper:${GRAPHHOPPER_VERSION}
     restart: unless-stopped
     command: ["/config.yml"]
     ports:
@@ -22,8 +22,7 @@ services:
       - ../core-moteur/graphhopper/custom_models:/data/custom_models:ro
 
   api-back:
-    build:
-      context: ../api-back
+    image: ghcr.io/astrea-eip/api-back:${API_BACK_VERSION}
     restart: unless-stopped
     depends_on:
       - mongo
@@ -31,15 +30,13 @@ services:
     ports:
       - "5217:5217"
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Production
       MongoDb__ConnectionString: mongodb://mongo:27017
       MongoDb__DatabaseName: astrea_proto
       GraphHopper__BaseUrl: http://graphhopper:8989
 
   app-web:
-    build:
-      context: ../app-web
-      target: dev
+    image: ghcr.io/astrea-eip/app-web:${APP_WEB_VERSION}
     restart: unless-stopped
     depends_on:
       - api-back
