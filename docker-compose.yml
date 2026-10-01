@@ -39,6 +39,7 @@ services:
   app-web:
     build:
       context: ../app-web
+      target: dev
     restart: unless-stopped
     depends_on:
       - api-back
