@@ -1,2 +1,6 @@
 # OSM data for the local GraphHopper service (see README.md) — too large to commit.
 data/
+
+# Rendered from environments/*.yml by scripts/render_env.py, or holding
+# server secrets — never committed.
+.env
