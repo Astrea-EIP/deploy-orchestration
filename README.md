@@ -82,13 +82,20 @@ python scripts/render_env.py environments/preprod.yml > .env
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 ```
 
-The same health checks as above apply. Stop with
+The GraphHopper image is self-contained: it embeds the configuration, the
+custom models and the pre-built routing graph. Nothing else is needed on the
+host: no `core-moteur` clone, no OSM file, no import at startup. GraphHopper
+is not published on the host; only `api-back` reaches it on the Compose
+network (use `docker compose exec` to query it for debugging). Its memory is
+capped (`mem_limit: 1424m`, `-Xmx1024m -XX:+UseSerialGC`).
+
+The same health checks as above apply, except GraphHopper's `/health` on
+`8989`, which is not reachable from the host. Stop with
 `docker compose -f docker-compose.prod.yml down -v`.
 
 Still plain Docker Compose — no Kubernetes or Terraform at this team's scale.
 Remaining work before a real server deployment: a reverse proxy (Caddy) for
-HTTPS, a full (not test-sized) OSM extract, and the SSH-based deploy workflow
-itself (see `deploy-orchestration#10`).
+HTTPS and the SSH-based deploy workflow itself (see `deploy-orchestration#18`).
 
 #### `.env` and secrets
 
