@@ -10,16 +10,18 @@ services:
     volumes:
       - astrea-mongo-data:/data/db
 
+  # Self-contained image: the config, the custom models and the pre-built
+  # routing graph are baked in at publish time (see deploy-orchestration#19). No bind mount
+  # and no volume on /data/graphhopper: the container layer is writable, which
+  # satisfies GraphHopper's gh.lock. Port 8989 is only reachable from api-back.
   graphhopper:
     image: ghcr.io/astrea-eip/graphhopper:${GRAPHHOPPER_VERSION}
     restart: unless-stopped
-    command: ["/config.yml"]
-    ports:
-      - "8989:8989"
-    volumes:
-      - ./data:/data
-      - ../core-moteur/graphhopper/config.yml:/config.yml:ro
-      - ../core-moteur/graphhopper/custom_models:/data/custom_models:ro
+    mem_limit: 1424m
+    environment:
+      # SerialGC is forced: the JVM picks G1 above ~1.8 GB of container memory,
+      # and G1 runs out of memory at this heap size while loading the graph.
+      JAVA_OPTS: "-Xmx1024m -XX:+UseSerialGC"
 
   api-back:
     image: ghcr.io/astrea-eip/api-back:${API_BACK_VERSION}
