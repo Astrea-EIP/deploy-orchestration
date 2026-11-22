@@ -29,6 +29,12 @@ services:
       - graphhopper
     ports:
       - "5217:5217"
+    # Server secrets (Jwt__SigningKey), written by hand on the server and never
+    # committed. See README.md, "Token signing key". The stack refuses to start
+    # without this file, so tokens are never signed with a throwaway key.
+    env_file:
+      - path: .env.secrets
+        required: true
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       MongoDb__ConnectionString: mongodb://mongo:27017

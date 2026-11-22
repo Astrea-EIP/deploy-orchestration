@@ -4,3 +4,4 @@ data/
 # Rendered from environments/*.yml by scripts/render_env.py, or holding
 # server secrets — never committed.
 .env
+.env.secrets
