@@ -9,3 +9,20 @@ This page documents the local promotion flow from `preprod` to `prod`.
 - Validate `preprod` before promotion.
 - Keep `prod` aligned with validated preprod state.
 - Maintain full traceability through pull requests and workflow history.
+
+## Updating the map
+
+The routing graph is built when `core-moteur` publishes an image, not on the
+server. To update the map (or change the GraphHopper profiles):
+
+1. Publish a new `core-moteur` version tag. The publish workflow downloads the
+   OSM extract, builds the graph and pushes `ghcr.io/astrea-eip/graphhopper:<tag>`.
+2. Change the `core-moteur` version to that tag in `environments/preprod.yml`
+   through a pull request and validate it. `core-moteur` is the only entry: its
+   version also drives the `graphhopper` image (see `scripts/render_env.py`).
+3. Promote it to `prod` like any other version.
+
+The image carries OCI labels with the `core-moteur` tag, the GraphHopper
+version and the date and MD5 of the OSM extract, so the running graph can be
+identified.
+
