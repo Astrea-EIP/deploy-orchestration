@@ -1,0 +1,14 @@
+# Test inventory for ansible/tests/run.sh: targets the throwaway container,
+# never a real server. All values here are test values.
+all:
+  hosts:
+    astrea-test:
+      ansible_connection: community.docker.docker
+      ansible_host: astrea-ansible-test
+      ansible_python_interpreter: /usr/bin/python3
+  vars:
+    astrea_deploy_dir: /srv/astrea-test
+    # Public half of a throwaway key generated for this test; the private key
+    # was deleted right after generation.
+    astrea_ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFYM5u/Yu/w+pGQCbL7mVcJ2GvlfxS+MyPATUfQ8Fdch astrea-test-only

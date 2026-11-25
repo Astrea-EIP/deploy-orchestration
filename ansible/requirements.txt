@@ -1,0 +1,4 @@
+# Tools to run and check server-setup.yml from a team machine.
+# python3 -m venv .venv && .venv/bin/pip install -r ansible/requirements.txt
+ansible-core>=2.19
+ansible-lint>=24.0

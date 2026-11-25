@@ -90,6 +90,12 @@ Remaining work before a real server deployment: a reverse proxy (Caddy) for
 HTTPS, a full (not test-sized) OSM extract, and the SSH-based deploy workflow
 itself (see `deploy-orchestration#10`).
 
+#### Preparing a server
+
+A fresh Ubuntu 24.04 server (Docker, Compose, `deploy` user, members' SSH
+keys, firewall, deployment directory) is prepared with the Ansible playbook
+in `ansible/`. See [`docs/server-setup.md`](docs/server-setup.md).
+
 #### `.env` and secrets
 
 `scripts/render_env.py` only ever writes deployed **version tags** — the

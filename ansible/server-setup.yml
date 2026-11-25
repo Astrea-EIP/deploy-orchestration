@@ -1,0 +1,179 @@
+---
+# Prepares a fresh Ubuntu 24.04 server for an Astrea deployment (#25):
+# Docker + Compose plugin, the `deploy` user (docker group) with the members'
+# SSH keys, a firewall that only lets in 22, 80 and 443/tcp, and the
+# deployment directory. Safe to run again: a second run changes nothing.
+#
+# It never creates, reads or overwrites `.env.secrets` (written by hand, #23).
+# See docs/server-setup.md for the variables and how to run it.
+- name: Prepare an Astrea server
+  hosts: all
+  become: true
+
+  vars:
+    # User that owns the deployment and runs `docker compose` (#16, #18).
+    astrea_deploy_user: deploy
+    # Ports the ticket allows in (#25). SSH stays open so access is not lost.
+    astrea_firewall_allowed_tcp_ports: [22, 80, 443]
+    astrea_docker_packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+
+  pre_tasks:
+    - name: "Check the target system (Ubuntu 24.04, x86_64, see #16 and #18)"
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['distribution'] == 'Ubuntu'
+          - ansible_facts['distribution_version'] == '24.04'
+          - ansible_facts['architecture'] == 'x86_64'
+        fail_msg: >-
+          Expected Ubuntu 24.04 on x86_64 (GHCR images are amd64 only), found
+          {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
+          on {{ ansible_facts['architecture'] }}.
+        quiet: true
+
+    - name: Check the inventory variables
+      ansible.builtin.assert:
+        that:
+          - astrea_deploy_dir is defined
+          - astrea_deploy_dir is string
+          - astrea_deploy_dir is match('^/')
+          - astrea_ssh_authorized_keys is defined
+          - astrea_ssh_authorized_keys is sequence
+          - astrea_ssh_authorized_keys is not string
+          - astrea_ssh_authorized_keys | length > 0
+        fail_msg: >-
+          Set astrea_deploy_dir (absolute path) and astrea_ssh_authorized_keys
+          (at least one public key) in the inventory, see
+          ansible/inventory.example.yml.
+        quiet: true
+
+  tasks:
+    - name: Install Docker from Docker's official apt repository
+      block:
+        - name: Install the prerequisites for adding an apt repository
+          ansible.builtin.apt:
+            name: [ca-certificates, python3-debian]
+            state: present
+            update_cache: true
+            cache_valid_time: 86400
+
+        - name: Create the apt keyrings directory
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Download Docker's apt signing key
+          ansible.builtin.get_url:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            dest: /etc/apt/keyrings/docker.asc
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Add Docker's apt repository
+          ansible.builtin.deb822_repository:
+            name: docker
+            types: [deb]
+            uris: https://download.docker.com/linux/ubuntu
+            suites: ["{{ ansible_facts['distribution_release'] }}"]
+            components: [stable]
+            architectures: [amd64]
+            signed_by: /etc/apt/keyrings/docker.asc
+          register: astrea_docker_repo
+
+        - name: Refresh the apt cache after adding the repository
+          ansible.builtin.apt:
+            update_cache: true
+          when: astrea_docker_repo is changed  # noqa: no-handler
+
+        - name: Install Docker, the Compose plugin and ufw
+          ansible.builtin.apt:
+            name: "{{ astrea_docker_packages + ['ufw'] }}"
+            state: present
+            update_cache: true
+            cache_valid_time: 86400
+
+        - name: Start Docker now and at boot
+          ansible.builtin.systemd_service:
+            name: docker
+            state: started
+            enabled: true
+
+    - name: Create the deploy user, in the docker group
+      ansible.builtin.user:
+        name: "{{ astrea_deploy_user }}"
+        groups: [docker]
+        append: true
+        shell: /bin/bash
+        create_home: true
+
+    - name: Authorize the members' SSH keys for the deploy user
+      ansible.posix.authorized_key:
+        user: "{{ astrea_deploy_user }}"
+        key: "{{ item }}"
+        state: present
+      loop: "{{ astrea_ssh_authorized_keys }}"
+      loop_control:
+        label: "{{ item.split(' ')[2] | default(item[:40]) }}"
+
+    - name: Configure the firewall (ufw)
+      block:
+        - name: Allow SSH, HTTP and HTTPS in
+          community.general.ufw:
+            rule: allow
+            port: "{{ item | string }}"
+            proto: tcp
+          loop: "{{ astrea_firewall_allowed_tcp_ports }}"
+
+        - name: Deny every other incoming connection
+          community.general.ufw:
+            default: deny
+            direction: incoming
+
+        - name: Allow outgoing connections
+          community.general.ufw:
+            default: allow
+            direction: outgoing
+
+        - name: Enable the firewall
+          community.general.ufw:
+            state: enabled
+
+    - name: Create the deployment directory, owned by the deploy user
+      ansible.builtin.file:
+        path: "{{ astrea_deploy_dir }}"
+        state: directory
+        owner: "{{ astrea_deploy_user }}"
+        group: "{{ astrea_deploy_user }}"
+        mode: "0750"
+
+    # Read-only: the file is written by hand (#23) and never touched here.
+    - name: Look for .env.secrets
+      ansible.builtin.stat:
+        path: "{{ astrea_deploy_dir }}/.env.secrets"
+      register: astrea_env_secrets
+
+    - name: Remind how to create .env.secrets
+      ansible.builtin.debug:
+        msg: >-
+          {{ astrea_deploy_dir }}/.env.secrets is missing. Create it by hand as
+          {{ astrea_deploy_user }} (README, "Token signing key"): the stack does
+          not start without it.
+      when: not astrea_env_secrets.stat.exists
+
+    - name: Warn about .env.secrets permissions
+      ansible.builtin.debug:
+        msg: >-
+          {{ astrea_deploy_dir }}/.env.secrets should be mode 0600 and owned by
+          {{ astrea_deploy_user }} (found {{ astrea_env_secrets.stat.mode }},
+          {{ astrea_env_secrets.stat.pw_name }}). Not changed by this playbook.
+      when:
+        - astrea_env_secrets.stat.exists
+        - astrea_env_secrets.stat.mode != '0600' or astrea_env_secrets.stat.pw_name != astrea_deploy_user
