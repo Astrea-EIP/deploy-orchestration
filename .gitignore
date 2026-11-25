@@ -4,3 +4,6 @@ data/
 # Rendered from environments/*.yml by scripts/render_env.py, or holding
 # server secrets — never committed.
 .env
+
+# Real server inventory (addresses, keys), see docs/server-setup.md.
+ansible/inventory.yml

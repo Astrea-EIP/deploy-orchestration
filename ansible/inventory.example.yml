@@ -1,0 +1,20 @@
+# Copy to ansible/inventory.yml (not committed) and fill in. See
+# docs/server-setup.md. Everything marked TO FILL IN has no agreed value yet.
+all:
+  hosts:
+    astrea-preprod:
+      # TO FILL IN: address of the server (MyEpitech VM, #16).
+      ansible_host: 203.0.113.10
+      # TO FILL IN: the account the VM image gives on first boot, with sudo
+      # (the playbook creates `deploy` itself, it cannot log in as it yet).
+      ansible_user: ubuntu
+  vars:
+    # TO FILL IN: absolute path of the deployment directory on the server,
+    # where docker-compose.prod.yml, .env and the hand-written .env.secrets live.
+    astrea_deploy_dir: /path/to/deployment
+    # TO FILL IN: one public key per team member (and later the CI deploy key,
+    # #18). Public keys only, never a private key.
+    astrea_ssh_authorized_keys:
+      - ssh-ed25519 AAAA... member-1
+    # Optional, defaults to `deploy` (#16, #18).
+    # astrea_deploy_user: deploy
