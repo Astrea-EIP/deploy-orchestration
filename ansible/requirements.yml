@@ -1,0 +1,9 @@
+# Collections used by server-setup.yml and its test.
+# ansible-galaxy collection install -r ansible/requirements.yml
+collections:
+  - name: ansible.posix  # authorized_key
+    version: ">=1.5.0"
+  - name: community.general  # ufw
+    version: ">=8.0.0"
+  - name: community.docker  # docker connection, used by tests/run.sh only
+    version: ">=3.0.0"
